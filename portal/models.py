@@ -33,7 +33,7 @@ name_validator = RegexValidator(
 # COVER QUESTIONNAIRE MODEL
 ###########################################################################################
 
-class Questionnairtbl(models.Model):
+class Cover_tbl(models.Model):
     enumerator_name = models.CharField(
         max_length=100,
         validators=[letters_only_validator],
@@ -58,6 +58,7 @@ class Questionnairtbl(models.Model):
         validators=[letters_only_validator],
         help_text="Should contain only letters."
     )
+    
     society = models.CharField(max_length=100)
     society_code = models.CharField(max_length=50)
     farmer_code = models.CharField(max_length=50)
@@ -66,16 +67,19 @@ class Questionnairtbl(models.Model):
         validators=[words_validator],
         help_text="Farmer surname (letters and spaces only)."
     )
+    
     farmer_first_name = models.CharField(
         max_length=100,
         validators=[words_validator],
         help_text="Farmer first name (letters and spaces only)."
     )
+    
     risk_classification = models.CharField(max_length=50)
     client = models.CharField(max_length=50)
     num_farmer_children = models.IntegerField(
         verbose_name="Number of farmer children aged 5-17 captured in Household"
     )
+    
     list_children = models.TextField(
         verbose_name="List of children aged 5 to 17 captured in Household",
         blank=True,
@@ -90,18 +94,22 @@ class Questionnairtbl(models.Model):
     # CONSENT AND LOCATION MODEL
     ###########################################################################################
 
+class ConsentLocation_tbl(models.Model):
+    
+    enumerator = models.ForeignKey(Cover_tbl, on_delete=models.CASCADE , null=False, blank=False , blank=True)
     interview_start_time = models.DateTimeField(
         verbose_name="Interview Start/Pick-up Time"
     )
+    
     gps_point = models.CharField(
         max_length=100,
         verbose_name="GPS Point of the Household"
     )
-    interview_date = models.DateField(
-        null=False,
-        blank=False,
-        verbose_name="Interview Date"
-    )
+    # interview_date = models.DateField(
+    #     null=False,
+    #     blank=False,
+    #     verbose_name="Interview Date"
+    # )
 
     # Community type with explicit choices
     COMMUNITY_CHOICES = [
@@ -133,6 +141,7 @@ class Questionnairtbl(models.Model):
         regex=r'^[A-Z0-9]+$',
         message="Community name must be in capital letters without any special characters."
     )
+    
     community_name = models.CharField(
         max_length=100,
         blank=True,
@@ -148,7 +157,14 @@ class Questionnairtbl(models.Model):
     )
 
     # Is the farmer available?
-    farmer_available = models.BooleanField(
+    YES_OR_NO = [
+        ('Yes', 'Yes'),
+        ('No', 'No'),
+    ]
+    farmer_available = models.CharField(
+        null=True,
+        blank=True,
+        choices=YES_OR_NO,
         verbose_name="Is the farmer available?"
     )
 
@@ -189,12 +205,15 @@ class Questionnairtbl(models.Model):
     #################################################################################
     #FARMER IDENTIFICATION
     #################################################################################
+    
+class FarmerIdentificationtbl(models.Model):
 
     CORRECT_RESPONSE_PROVIDED = [
         ('Yes', 'Yes'),
         ('No', 'No'),
     ]
     # Name verification
+    consent = models.ForeignKey(ConsentLocation_tbl, on_delete=models.CASCADE , null=False, blank=False , blank=True)
     is_name_correct = models.CharField(
         choices = CORRECT_RESPONSE_PROVIDED,
         verbose_name="Is the name of the respondent correct?",
@@ -282,13 +301,16 @@ class Questionnairtbl(models.Model):
     #OWNER IDENTIFICATION
     #################################################################################
 
+    
+class OwnerIdentificationTbl(models.Model):
+    
+    farmer_detail = models.ForeignKey(FarmerIdentificationtbl, on_delete=models.CASCADE , null=False, blank=False , blank=True)
+
     owner_name_validator = RegexValidator(
         regex=r'^[A-Za-z\']+$',
         message="This field must contain only letters and apostrophes (no spaces or accents)."
     )
 
-
-    # Owner's name fields – required if the respondent is not the owner.
     name_owner = models.CharField(
         max_length=100,
         validators=[owner_name_validator],
@@ -327,7 +349,7 @@ class Questionnairtbl(models.Model):
         ('Other', 'Other'),
     ]
     country_origin_owner = models.CharField(
-        max_length=50,
+        max_length=200,
         choices=COUNTRY_ORIGIN_OWNER_CHOICES,
         blank=True,
         verbose_name="Country of origin of the owner",
@@ -349,7 +371,12 @@ class Questionnairtbl(models.Model):
     #################################################################################
     # WORKERS IN THE FARM
     #################################################################################
-    # A simple yes/no choice coded as "01" for Agree and "02" for Disagree.
+    # A simple yes/no choice coded as "01" for Agree and "02" for Disagree.\
+        
+class WorkerInTheFarmTbl(models.Model):
+    
+    owner_detail = models.ForeignKey(FarmerIdentificationtbl, on_delete=models.CASCADE , null=False, blank=False , blank=True)
+    
     YES_NO_CHOICES = [
         ('01', 'Agree'),
         ('02', 'Disagree'),
@@ -377,6 +404,7 @@ class Questionnairtbl(models.Model):
         ('Rarely', 'Rarely'),
         ('Never', 'Never'),
     ]
+    
     REFUSAL_ACTION_CHOICES = [
             ('Compromise', 'I find a compromise'),
             ('SalaryDeduction', 'I withdraw part of their salary'),
@@ -507,6 +535,8 @@ class Questionnairtbl(models.Model):
     #################################################################################
     # ADULT OF THE RESPONDENTS HOUSEHOLD
     #################################################################################
+    
+class AdultInHouseholdTbl(models.Model):
 
     total_adults = models.PositiveIntegerField(
             verbose_name="Total number of adults in the household (producer/manager/owner not included)",
@@ -637,6 +667,7 @@ class Questionnairtbl(models.Model):
     # CHILDREN IN THE RESPONDENT'S HOUSEHOLD MODEL
     #################################################################################
 
+class ChildInHouseholdTbl(models.Model):
     # Validator for names: letters and spaces only.
     words_validator = RegexValidator(
         regex=r'^[A-Za-z\s]+$',
@@ -2104,14 +2135,14 @@ class Questionnairtbl(models.Model):
 
 # from django.db import models
 
-# class ChildRemediation(models.Model):
-#     # Link to the main survey record (e.g., a FarmerSurvey or HouseholdSurvey)
-#     survey = models.OneToOneField(
-#         'FarmerSurvey',  # Replace with your appropriate survey model name
-#         on_delete=models.CASCADE,
-#         related_name='child_remediation',
-#         help_text="Link to the main survey record. This section is shown if consent==1, farmer_available==1, and date is set."
-#     )
+class ChildRemediationTbl(models.Model):
+    # Link to the main survey record (e.g., a FarmerSurvey or HouseholdSurvey)
+    survey = models.OneToOneField(
+        'FarmerSurvey',  # Replace with your appropriate survey model name
+        on_delete=models.CASCADE,
+        related_name='child_remediation',
+        help_text="Link to the main survey record. This section is shown if consent==1, farmer_available==1, and date is set."
+    )
     
     # Question 1: Do you owe fees for the school of the children living in your household?
     SCHOOL_FEES_CHOICES = [
@@ -2175,19 +2206,21 @@ class Questionnairtbl(models.Model):
 # from django.db import models
 # from django.core.validators import MinValueValidator
 
+  
+
+class HouseholdSensitizationTbl(models.Model):
+    
     YES_NO_CHOICES = [
         ('yes', 'Yes'),
         ('no', 'No'),
     ]
-
-# class HouseholdSensitization(models.Model):
-#     # Link to the main survey record.
-#     survey = models.OneToOneField(
-#         'FarmerSurvey',  # Replace with the appropriate main survey model name.
-#         on_delete=models.CASCADE,
-#         related_name='household_sensitization',
-#         help_text="Link to the main survey record. This section applies if farmer_available==1 or farmer_unit is not null."
-#     )
+    # Link to the main survey record.
+    survey = models.OneToOneField(
+        'FarmerSurvey',  # Replace with the appropriate main survey model name.
+        on_delete=models.CASCADE,
+        related_name='household_sensitization',
+        help_text="Link to the main survey record. This section applies if farmer_available==1 or farmer_unit is not null."
+    )
     
     # Sensitization on Good Parenting.
     sensitized_good_parenting = models.CharField(
@@ -2248,6 +2281,7 @@ class Questionnairtbl(models.Model):
         return f"Sensitization Assessment for Survey Record #{self.survey.pk}"
 
 
+
 ####################################################################################################
 # End of Collection
 ####################################################################################################
@@ -2255,14 +2289,14 @@ class Questionnairtbl(models.Model):
 
 # from django.db import models
 
-# class EndOfCollection(models.Model):
-#     # Link to the main survey record (adjust the model name as needed).
-#     survey = models.OneToOneField(
-#         'FarmerSurvey',  # Replace with your appropriate survey model name.
-#         on_delete=models.CASCADE,
-#         related_name='end_of_collection',
-#         help_text="Link to the main survey record."
-#     )
+class EndOfCollection(models.Model):
+    # Link to the main survey record (adjust the model name as needed).
+    survey = models.OneToOneField(
+        'FarmerSurvey',  # Replace with your appropriate survey model name.
+        on_delete=models.CASCADE,
+        related_name='end_of_collection',
+        help_text="Link to the main survey record."
+    )
     
     # Enumerator feedback is mandatory.
     feedback_enum = models.TextField(
