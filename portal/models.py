@@ -36,7 +36,7 @@ name_validator = RegexValidator(
 class Cover_tbl(models.Model):
     enumerator_name = models.CharField(
         max_length=100,
-        validators=[letters_only_validator],
+        # validators=[letters_only_validator],
         help_text="Enumerator name (letters only, no spaces)."
     )
     enumerator_code = models.CharField(max_length=50)
@@ -96,7 +96,13 @@ class Cover_tbl(models.Model):
 
 class ConsentLocation_tbl(models.Model):
     
-    enumerator = models.ForeignKey(Cover_tbl, on_delete=models.CASCADE , null=False, blank=False , blank=True)
+    cover = models.OneToOneField(
+        Cover_tbl,
+        on_delete=models.CASCADE,
+        related_name='consent_location',
+        null=True
+    )
+    
     interview_start_time = models.DateTimeField(
         verbose_name="Interview Start/Pick-up Time"
     )
@@ -105,12 +111,7 @@ class ConsentLocation_tbl(models.Model):
         max_length=100,
         verbose_name="GPS Point of the Household"
     )
-    # interview_date = models.DateField(
-    #     null=False,
-    #     blank=False,
-    #     verbose_name="Interview Date"
-    # )
-
+    
     # Community type with explicit choices
     COMMUNITY_CHOICES = [
         ('Town', 'Town'),
@@ -213,7 +214,13 @@ class FarmerIdentificationtbl(models.Model):
         ('No', 'No'),
     ]
     # Name verification
-    consent = models.ForeignKey(ConsentLocation_tbl, on_delete=models.CASCADE , null=False, blank=False , blank=True)
+    cover = models.OneToOneField(
+        Cover_tbl,
+        on_delete=models.CASCADE,
+        related_name='farmer_identification',
+        null=True
+    )
+     
     is_name_correct = models.CharField(
         choices = CORRECT_RESPONSE_PROVIDED,
         verbose_name="Is the name of the respondent correct?",
@@ -304,7 +311,12 @@ class FarmerIdentificationtbl(models.Model):
     
 class OwnerIdentificationTbl(models.Model):
     
-    farmer_detail = models.ForeignKey(FarmerIdentificationtbl, on_delete=models.CASCADE , null=False, blank=False , blank=True)
+    cover = models.OneToOneField(
+        Cover_tbl,
+        on_delete=models.CASCADE,
+        related_name='owner_identification',
+        null=True
+    )
 
     owner_name_validator = RegexValidator(
         regex=r'^[A-Za-z\']+$',
@@ -375,7 +387,12 @@ class OwnerIdentificationTbl(models.Model):
         
 class WorkerInTheFarmTbl(models.Model):
     
-    owner_detail = models.ForeignKey(FarmerIdentificationtbl, on_delete=models.CASCADE , null=False, blank=False , blank=True)
+    cover = models.OneToOneField(
+        Cover_tbl,
+        on_delete=models.CASCADE,
+        related_name='worker_in_farm',
+        null=True
+    )
     
     YES_NO_CHOICES = [
         ('01', 'Agree'),
@@ -538,6 +555,13 @@ class WorkerInTheFarmTbl(models.Model):
     
 class AdultInHouseholdTbl(models.Model):
 
+    cover = models.OneToOneField(
+        Cover_tbl,
+        on_delete=models.CASCADE,
+        related_name='adult_in_household',
+        null=True
+    )
+    
     total_adults = models.PositiveIntegerField(
             verbose_name="Total number of adults in the household (producer/manager/owner not included)",
             help_text="Household means people that dwell under the same roof and share the same meal."
@@ -680,6 +704,13 @@ class ChildInHouseholdTbl(models.Model):
         message="Only capital letters, numbers, and spaces are allowed."
     )
 
+    cover = models.OneToOneField(
+        Cover_tbl,
+        on_delete=models.CASCADE,
+        related_name='child_in_household',
+        null=True
+    )
+    
     # Choices for who is answering when the child is not available.
     WHO_ANSWERS_CHOICES = [
         ('parents', 'The parents or legal guardians'),
@@ -2137,11 +2168,17 @@ class ChildInHouseholdTbl(models.Model):
 
 class ChildRemediationTbl(models.Model):
     # Link to the main survey record (e.g., a FarmerSurvey or HouseholdSurvey)
-    survey = models.OneToOneField(
-        'FarmerSurvey',  # Replace with your appropriate survey model name
+    # survey = models.OneToOneField(
+    #     'FarmerSurvey',  # Replace with your appropriate survey model name
+    #     on_delete=models.CASCADE,
+    #     related_name='child_remediation',
+    #     help_text="Link to the main survey record. This section is shown if consent==1, farmer_available==1, and date is set."
+    # )
+    cover = models.OneToOneField(
+        Cover_tbl,
         on_delete=models.CASCADE,
         related_name='child_remediation',
-        help_text="Link to the main survey record. This section is shown if consent==1, farmer_available==1, and date is set."
+        null=True
     )
     
     # Question 1: Do you owe fees for the school of the children living in your household?
@@ -2149,6 +2186,7 @@ class ChildRemediationTbl(models.Model):
         ('yes', 'Yes'),
         ('no', 'No'),
     ]
+    
     school_fees_owed = models.CharField(
         max_length=3,
         choices=SCHOOL_FEES_CHOICES,
@@ -2215,11 +2253,17 @@ class HouseholdSensitizationTbl(models.Model):
         ('no', 'No'),
     ]
     # Link to the main survey record.
-    survey = models.OneToOneField(
-        'FarmerSurvey',  # Replace with the appropriate main survey model name.
+    # survey = models.OneToOneField(
+    #     'FarmerSurvey',  # Replace with the appropriate main survey model name.
+    #     on_delete=models.CASCADE,
+    #     related_name='household_sensitization',
+    #     help_text="Link to the main survey record. This section applies if farmer_available==1 or farmer_unit is not null."
+    # )
+    cover = models.OneToOneField(
+        Cover_tbl,
         on_delete=models.CASCADE,
         related_name='household_sensitization',
-        help_text="Link to the main survey record. This section applies if farmer_available==1 or farmer_unit is not null."
+        null=True
     )
     
     # Sensitization on Good Parenting.
@@ -2290,12 +2334,11 @@ class HouseholdSensitizationTbl(models.Model):
 # from django.db import models
 
 class EndOfCollection(models.Model):
-    # Link to the main survey record (adjust the model name as needed).
-    survey = models.OneToOneField(
-        'FarmerSurvey',  # Replace with your appropriate survey model name.
+    cover = models.OneToOneField(
+        Cover_tbl,
         on_delete=models.CASCADE,
         related_name='end_of_collection',
-        help_text="Link to the main survey record."
+        null=True
     )
     
     # Enumerator feedback is mandatory.
