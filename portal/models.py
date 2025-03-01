@@ -4,6 +4,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.forms import ValidationError
+from .helper import generate_code
 
 # Validators
 letters_only_validator = RegexValidator(
@@ -39,7 +40,7 @@ class Cover_tbl(models.Model):
         # validators=[letters_only_validator],
         help_text="Enumerator name (letters only, no spaces)."
     )
-    enumerator_code = models.CharField(max_length=50)
+    enumerator_code = models.CharField(max_length=50, blank=True, unique=True)
     # country = models.CharField(max_length=100)
     country = models.CharField(
         max_length=100,
@@ -60,8 +61,8 @@ class Cover_tbl(models.Model):
     )
     
     society = models.CharField(max_length=100)
-    society_code = models.CharField(max_length=50)
-    farmer_code = models.CharField(max_length=50)
+    society_code = models.CharField(max_length=50, blank=True, unique=True)
+    farmer_code = models.CharField(max_length=50, blank=True, unique=True)
     farmer_surname = models.CharField(
         max_length=100,
         validators=[words_validator],
@@ -85,7 +86,17 @@ class Cover_tbl(models.Model):
         blank=True,
         help_text="Enter names or details as a comma-separated list."
     )
-    
+    def save(self, *args, **kwargs):
+        # Auto-generate farmer_code if not provided using farmer_name.
+        if not self.farmer_code and self.farmer_first_name:
+            self.farmer_code = generate_code(self.farmer_first_name, prefix="FARM")
+        # Auto-generate enumerator_code if not provided using enumerator_name.
+        if not self.enumerator_code and self.enumerator_name:
+            self.enumerator_code = generate_code(self.enumerator_name, prefix="ENUM")
+        # Auto-generate society_code if not provided using society.
+        if not self.society_code and self.society:
+            self.society_code = generate_code(self.society, prefix="SOC")
+        super().save(*args, **kwargs)
     def __str__(self):
         return f"{self.enumerator_name} - {self.farmer_code}"
 
@@ -129,7 +140,7 @@ class ConsentLocation_tbl(models.Model):
         ('Yes', 'Yes'),
         ('No', 'No'),
     ]
-    farmer_resides_in_community = models.BooleanField(
+    farmer_resides_in_community = models.CharField(
         null=False,
         blank=False,
         choices=RESIDE_IN_COMMUNITY,
