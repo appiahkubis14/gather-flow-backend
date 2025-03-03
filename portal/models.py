@@ -320,14 +320,14 @@ class FarmerIdentificationtbl(models.Model):
     #################################################################################
 
     
-class OwnerIdentificationTbl(models.Model):
+# class OwnerIdentificationTbl(models.Model):
     
-    cover = models.OneToOneField(
-        Cover_tbl,
-        on_delete=models.CASCADE,
-        related_name='owner_identification',
-        null=True
-    )
+    # cover = models.OneToOneField(
+    #     Cover_tbl,
+    #     on_delete=models.CASCADE,
+    #     related_name='owner_identification',
+    #     null=True
+    # )
 
     owner_name_validator = RegexValidator(
         regex=r'^[A-Za-z\']+$',
@@ -357,7 +357,8 @@ class OwnerIdentificationTbl(models.Model):
     nationality_owner = models.CharField(
         max_length=20,
         choices=NATIONALITY_OWNER_CHOICES,
-        verbose_name="What is the nationality of the owner?"
+        verbose_name="What is the nationality of the owner?",
+        default=None,
     )
 
     # Country of origin of the owner (if Non Ghanaian)
@@ -387,7 +388,9 @@ class OwnerIdentificationTbl(models.Model):
 
     # Manager work length: number of years the respondent has been working for the owner.
     manager_work_length = models.IntegerField(
-        verbose_name="For how many years has the respondent been working for the owner?"
+        verbose_name="For how many years has the respondent been working for the owner?",
+        default=0,
+        
     )
 
 
@@ -396,18 +399,18 @@ class OwnerIdentificationTbl(models.Model):
     #################################################################################
     # A simple yes/no choice coded as "01" for Agree and "02" for Disagree.\
         
-class WorkerInTheFarmTbl(models.Model):
+# class WorkerInTheFarmTbl(models.Model):
     
-    cover = models.OneToOneField(
-        Cover_tbl,
-        on_delete=models.CASCADE,
-        related_name='worker_in_farm',
-        null=True
-    )
+    # cover = models.OneToOneField(
+    #     Cover_tbl,
+    #     on_delete=models.CASCADE,
+    #     related_name='worker_in_farm',
+    #     null=True
+    # )
     
     YES_NO_CHOICES = [
-        ('01', 'Agree'),
-        ('02', 'Disagree'),
+        ('01', 'Yes'),
+        ('02', 'No'),
     ]
 
     # For the worker agreement type, we allow an "Other" option requiring specification.
@@ -443,39 +446,54 @@ class WorkerInTheFarmTbl(models.Model):
 
 
     # Recruitment questions
-    recruited_workers = models.BooleanField(
+    AGREEMENT_CHOICES = [
+        ('01', 'Agree'),
+        ('02', 'Disagree'),
+    ]
+  
+    
+    recruited_workers = models.CharField(
+        choices=YES_NO_CHOICES,
         verbose_name="Have you recruited at least one worker during the past year?",
-        help_text="Yes or No"
+        # help_text="Yes or No"
+        default='02'
     )
     worker_recruitment_type = models.CharField(
         max_length=10,
         choices=WORKER_RECRUITMENT_CHOICES,
-        verbose_name="Do you recruit workers for..."
+        verbose_name="Do you recruit workers for...",
+        default='Permanent'
     )
     
     # Agreement with workers
     worker_agreement_type = models.CharField(
         max_length=30,
         choices=WORKER_AGREEMENT_CHOICES,
-        verbose_name="What kind of agreement do you have with your workers?"
+        verbose_name="What kind of agreement do you have with your workers?",
+        default='VerbalWithoutWitness'
     )
     worker_agreement_other = models.CharField(
         max_length=100,
         blank=True,
         verbose_name="Specify other agreement type",
-        help_text="Provide details if 'Other' is selected."
+        help_text="Provide details if 'Other' is selected.",
+        default='Other'
     )
     
     # Clarification of tasks during recruitment
-    tasks_clarified = models.BooleanField(
+    tasks_clarified = models.CharField(
+        choices=YES_NO_CHOICES,
         verbose_name="Were the tasks to be performed by the worker clarified during recruitment?",
-        help_text="Yes or No"
+        # help_text="Yes or No"
+        default='02'
     )
     
     # Additional tasks performed outside the agreement
-    additional_tasks = models.BooleanField(
+    additional_tasks = models.CharField(
+        choices=YES_NO_CHOICES,
         verbose_name="Does the worker perform tasks for you or your family members other than those agreed upon?",
-        help_text="Yes or No"
+        # help_text="Yes or No"
+        default='02'
     )
     
     # Refusal to perform tasks
@@ -483,157 +501,144 @@ class WorkerInTheFarmTbl(models.Model):
     refusal_action = models.CharField(
         max_length=20,
         choices=REFUSAL_ACTION_CHOICES,
-        verbose_name="What do you do when a worker refuses to perform a task?"
+        verbose_name="What do you do when a worker refuses to perform a task?",
+        default='NotApplicable'
     )
     refusal_action_other = models.CharField(
         max_length=100,
         blank=True,
         verbose_name="Specify refusal action",
-        help_text="Fill this if 'Other' is selected."
+        help_text="Fill this if 'Other' is selected.",
+        default='NotApplicable'
     )
     
     # Salary status of workers
     salary_status = models.CharField(
         max_length=10,
         choices=SALARY_STATUS_CHOICES,
-        verbose_name="Do your workers receive their full salaries?"
+        verbose_name="Do your workers receive their full salaries?",
+        # help_text="Yes or No"
+        default='Never'
     )
     
     # Attitudinal statements: Using yes/no choices
     recruit_1 = models.CharField(
         max_length=2,
-        choices=YES_NO_CHOICES,
-        verbose_name="It is acceptable for a person who cannot pay their debts to work for the creditor to reimburse the debt."
+        choices=AGREEMENT_CHOICES,
+        verbose_name="It is acceptable for a person who cannot pay their debts to work for the creditor to reimburse the debt.",
+        default='02'
     )
     recruit_2 = models.CharField(
         max_length=2,
-        choices=YES_NO_CHOICES,
-        verbose_name="It is acceptable for an employer not to reveal the true nature of the work during recruitment."
+        choices=AGREEMENT_CHOICES,
+        verbose_name="It is acceptable for an employer not to reveal the true nature of the work during recruitment.",
+        default='02'
     )
     recruit_3 = models.CharField(
         max_length=2,
-        choices=YES_NO_CHOICES,
-        verbose_name="A worker is obliged to work whenever he is called upon by his employer."
+        choices=AGREEMENT_CHOICES,
+        verbose_name="A worker is obliged to work whenever he is called upon by his employer.",
+        default='02'
     )
     conditions_1 = models.CharField(
         max_length=2,
-        choices=YES_NO_CHOICES,
-        verbose_name="A worker is not entitled to move freely."
+        choices=AGREEMENT_CHOICES,
+        verbose_name="A worker is not entitled to move freely.",
+        default='02'
     )
     conditions_2 = models.CharField(
         max_length=2,
-        choices=YES_NO_CHOICES,
-        verbose_name="A worker must be free to communicate with his or her family and friends."
+        choices=AGREEMENT_CHOICES,
+        verbose_name="A worker must be free to communicate with his or her family and friends.",
+        default='02'
     )
     conditions_3 = models.CharField(
         max_length=2,
-        choices=YES_NO_CHOICES,
-        verbose_name="A worker is obliged to adapt to any living conditions imposed by the employer."
+        choices=AGREEMENT_CHOICES,
+        verbose_name="A worker is obliged to adapt to any living conditions imposed by the employer.",
+        default='02'
     )
     conditions_4 = models.CharField(
         max_length=2,
-        choices=YES_NO_CHOICES,
-        verbose_name="It is acceptable for an employer and their family to interfere in a worker's private life."
+        choices=AGREEMENT_CHOICES,
+        verbose_name="It is acceptable for an employer and their family to interfere in a worker's private life.",
+        default='02'
     )
     conditions_5 = models.CharField(
         max_length=2,
-        choices=YES_NO_CHOICES,
-        verbose_name="A worker should not have the freedom to leave work whenever they wish."
+        choices=AGREEMENT_CHOICES,
+        verbose_name="A worker should not have the freedom to leave work whenever they wish.",
+        default='02'
     )
     leaving_1 = models.CharField(
         max_length=2,
-        choices=YES_NO_CHOICES,
-        verbose_name="A worker should be required to stay longer than expected while waiting for unpaid salary."
+        choices=AGREEMENT_CHOICES,
+        verbose_name="A worker should be required to stay longer than expected while waiting for unpaid salary.",
+        default='02'
     )
     leaving_2 = models.CharField(
         max_length=2,
-        choices=YES_NO_CHOICES,
-        verbose_name="A worker should not be able to leave their employer when they owe money to their employer."
+        choices=AGREEMENT_CHOICES,
+        verbose_name="A worker should not be able to leave their employer when they owe money to their employer.",
+        default='02'
     )
     
     # Attitudinal statement regarding recruitment ethics
     consent_recruitment = models.CharField(
         max_length=2,
-        choices=YES_NO_CHOICES,
-        verbose_name="It is acceptable to recruit someone for work without their consent."
+        choices=AGREEMENT_CHOICES,
+        verbose_name="It is acceptable to recruit someone for work without their consent.",
+        default='02'
     )
     
-
-
-    #################################################################################
-    # ADULT OF THE RESPONDENTS HOUSEHOLD
-    #################################################################################
     
-class AdultInHouseholdTbl(models.Model):
-
-    cover = models.OneToOneField(
-        Cover_tbl,
-        on_delete=models.CASCADE,
-        related_name='adult_in_household',
-        null=True
-    )
     
-    total_adults = models.PositiveIntegerField(
-            verbose_name="Total number of adults in the household (producer/manager/owner not included)",
-            help_text="Household means people that dwell under the same roof and share the same meal."
-        )
-    # An ArrayField to store a list of full names
-    full_names = ArrayField(
-        models.CharField(max_length=200, validators=[name_validator]),
-        verbose_name="List of full names of household members",
-        help_text="Enter each household member's full name. Characters with accents are not allowed.",
-        default=list,
-        blank=True
-        )
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-    # Relationship of this member to the respondent (producer/manager/owner)
+
+#################################################################################
+# ADULT OF THE RESPONDENTS HOUSEHOLD
+#################################################################################
+    
+class HouseholdMembertbl(models.Model):
+    # Link each household member to a Cover_tbl record (the parent household).
+    
+    
     RELATIONSHIP_CHOICES = [
-        ('Husband/Wife', 'Husband/Wife'),
-        ('Son/Daughter', 'Son/Daughter'),
-        ('Brother/Sister', 'Brother/Sister'),
-        ('Son-in-law/Daughter-in-law', 'Son-in-law/Daughter-in-law'),
-        ('Grandson/Granddaughter', 'Grandson/Granddaughter'),
-        ('Niece/Nephew', 'Niece/Nephew'),
-        ('Cousin', 'Cousin'),
-        ("Worker's Family", "Worker's Family"),
-        ('Worker', 'Worker'),
-        ('Father/Mother', 'Father/Mother'),
-        ('Other', 'Other (specify)')
+    ('Husband/Wife', 'Husband/Wife'),
+    ('Son/Daughter', 'Son/Daughter'),
+    ('Brother/Sister', 'Brother/Sister'),
+    ('Son-in-law/Daughter-in-law', 'Son-in-law/Daughter-in-law'),
+    ('Grandson/Granddaughter', 'Grandson/Granddaughter'),
+    ('Niece/Nephew', 'Niece/Nephew'),
+    ('Cousin', 'Cousin'),
+    ("Worker's Family", "Worker's Family"),
+    ('Worker', 'Worker'),
+    ('Father/Mother', 'Father/Mother'),
+    ('Other', 'Other (specify)')
     ]
-    relationship = models.CharField(
-        max_length=50,
-        choices=RELATIONSHIP_CHOICES,
-        verbose_name="Relationship to the respondent"
-    )
-    relationship_other = models.CharField(
-        max_length=100,
-        blank=True,
-        verbose_name="Specify relationship (if Other)",
-        help_text="If 'Other' is selected, please specify."
-    )
 
-    # Gender of the household member
     GENDER_CHOICES = [
         ('Male', 'Male'),
         ('Female', 'Female'),
     ]
-    gender = models.CharField(
-        max_length=6,
-        choices=GENDER_CHOICES,
-        verbose_name="Gender"
-    )
 
-    # Nationality and country of origin
     NATIONALITY_CHOICES = [
         ('Ghanaian', 'Ghanaian'),
         ('Non Ghanaian', 'Non Ghanaian'),
     ]
-    nationality = models.CharField(
-        max_length=20,
-        choices=NATIONALITY_CHOICES,
-        verbose_name="Nationality"
-    )
-    # Country of origin if Non Ghanaian
+
     COUNTRY_ORIGIN_CHOICES = [
         ('Burkina Faso', 'Burkina Faso'),
         ('Mali', 'Mali'),
@@ -646,6 +651,69 @@ class AdultInHouseholdTbl(models.Model):
         ('Nigeria', 'Nigeria'),
         ('Other', 'Other (specify)')
     ]
+
+    BIRTH_CERTIFICATE_CHOICES = [
+        ('Yes', 'Yes'),
+        ('No', 'No'),
+    ]
+
+    MAIN_WORK_CHOICES = [
+        ('Farmer_cocoa', 'Farmer (cocoa)'),
+        ('Farmer_coffee', 'Farmer (coffee)'),
+        ('Farmer_other', 'Farmer (other)'),
+        ('Merchant', 'Merchant'),
+        ('Student', 'Student'),
+        ('Other', 'Other'),
+        ('No_activity', 'No activity'),
+    ]
+
+    # A simple name validator (adjust as needed)
+    name_validator = RegexValidator(
+        regex=r'^[A-Za-z\s]+$',
+        message="Name must contain only letters and spaces."
+    )
+   
+    
+    # NEW: If this member is an adult, link to the AdultInHouseholdTbl record.
+    # This field is optional; you can leave it null for non-adults.
+    adult_of_respondent_household = models.ForeignKey(
+        'AdultInHouseholdTbl',
+        on_delete=models.CASCADE,
+        related_name='members',
+        blank=True,
+        null=True,
+        help_text="Link to the corresponding AdultInHouseholdTbl record if this member is an adult."
+    )
+    
+  
+    
+    full_name = models.CharField(
+        max_length=200,
+        validators=[name_validator],
+        verbose_name="Full Name",
+        help_text="Enter the full name of the household member."
+    )
+    relationship = models.CharField(
+        max_length=50,
+        choices=RELATIONSHIP_CHOICES,
+        verbose_name="Relationship to the respondent"
+    )
+    relationship_other = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Specify relationship (if Other)",
+        help_text="If 'Other' is selected, please specify."
+    )
+    gender = models.CharField(
+        max_length=6,
+        choices=GENDER_CHOICES,
+        verbose_name="Gender"
+    )
+    nationality = models.CharField(
+        max_length=20,
+        choices=NATIONALITY_CHOICES,
+        verbose_name="Nationality"
+    )
     country_origin = models.CharField(
         max_length=50,
         choices=COUNTRY_ORIGIN_CHOICES,
@@ -657,33 +725,14 @@ class AdultInHouseholdTbl(models.Model):
         blank=True,
         verbose_name="Specify country of origin (if Other)"
     )
-
-    # Year of birth, must be between 1910 and 2007
     year_birth = models.IntegerField(
-        verbose_name="Year of birth",
+        verbose_name="Year of birth"
     )
-
-    # Whether the household member has a birth certificate
-    BIRTH_CERTIFICATE_CHOICES = [
-        ('Yes', 'Yes'),
-        ('No', 'No'),
-    ]
     birth_certificate = models.CharField(
         max_length=3,
         choices=BIRTH_CERTIFICATE_CHOICES,
-        verbose_name="Does this member have a birth certificate?"
+        verbose_name="Has birth certificate?"
     )
-
-    # Main work/occupation
-    MAIN_WORK_CHOICES = [
-        ('Farmer_cocoa', 'Farmer (cocoa)'),
-        ('Farmer_coffee', 'Farmer (coffee)'),
-        ('Farmer_other', 'Farmer (other)'),
-        ('Merchant', 'Merchant'),
-        ('Student', 'Student'),
-        ('Other', 'Other'),
-        ('No_activity', 'No activity'),
-    ]
     main_work = models.CharField(
         max_length=30,
         choices=MAIN_WORK_CHOICES,
@@ -695,6 +744,29 @@ class AdultInHouseholdTbl(models.Model):
         verbose_name="Specify main work (if Other)",
         help_text="If 'Other' is selected, please specify."
     )
+
+    def __str__(self):
+        return f"{self.full_name} ({self.relationship})"
+
+    
+class AdultInHouseholdTbl(models.Model):
+    cover = models.OneToOneField(
+        Cover_tbl,
+        on_delete=models.CASCADE,
+        related_name='adult_in_household',
+        null=True
+    )
+    
+    total_adults = models.PositiveIntegerField(
+        verbose_name="Total number of adults in the household (producer/manager/owner not included)",
+        help_text="Household means people that dwell under the same roof and share the same meal."
+    )
+
+    def __str__(self):
+        return f"Adult Group for {self.cover}"
+
+    
+
 
 
 
@@ -765,9 +837,10 @@ class ChildInHouseholdTbl(models.Model):
 
 
     # Aggregated household information
-    children_present = models.BooleanField(
+    children_present = models.CharField(
         verbose_name="Are there children living in the respondent's household?",
-        help_text="Answer Yes if there are children, No otherwise."
+        help_text="Answer Yes if there are children, No otherwise.",
+        choices=YES_NO_CHOICES
     )
     num_children_5_to_17 = models.PositiveSmallIntegerField(
         verbose_name="Number of children between ages 5 and 17",
@@ -776,9 +849,10 @@ class ChildInHouseholdTbl(models.Model):
     )
 
     # Information for the specific child (from the cover) being surveyed
-    child_declared_in_cover = models.BooleanField(
+    child_declared_in_cover = models.CharField(
         verbose_name="Is the child among those declared in the cover as the farmer's child?",
-        help_text="Yes if the child is already listed in the cover; No otherwise."
+        help_text="Yes if the child is already listed in the cover; No otherwise.",
+        choices=YES_NO_CHOICES
     )
     child_identifier = models.PositiveSmallIntegerField(
         verbose_name="Child identifier",
@@ -786,9 +860,10 @@ class ChildInHouseholdTbl(models.Model):
         help_text="Enter the number attached to the child's name in the cover (must be less than 20)."
     )
 
-    child_can_be_surveyed = models.BooleanField(
+    child_can_be_surveyed = models.CharField(
         verbose_name="Can the child be surveyed now?",
-        help_text="Answer Yes if the child is available for survey; No otherwise."
+        help_text="Answer Yes if the child is available for survey; No otherwise.",
+        choices=YES_NO_CHOICES
     )
     child_unavailability_reason = models.CharField(
         max_length=20,
@@ -1528,8 +1603,6 @@ class ChildInHouseholdTbl(models.Model):
         help_text="Did the child receive remuneration for the activity?"
     )
     
-    
-    
     # 1. Longest time spent on light duty during a SCHOOL DAY in the last 7 days
     LIGHT_DUTY_DURATION_CHOICES = [
         ('<1', 'Less than 1 hour'),
@@ -1541,6 +1614,7 @@ class ChildInHouseholdTbl(models.Model):
         ('>8', 'More than 8 hours'),
         ('na', 'Does not apply'),
     ]
+    
     light_duty_duration_school = models.CharField(
         max_length=10,
         choices=LIGHT_DUTY_DURATION_CHOICES,
@@ -2168,6 +2242,17 @@ class ChildInHouseholdTbl(models.Model):
     
     def __str__(self):
         return f"Heavy Work & Health Assessment for Child Survey Record #{self.child.pk}"
+
+
+
+
+
+
+
+
+
+
+
 
 
 

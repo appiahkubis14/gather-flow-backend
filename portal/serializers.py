@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    Cover_tbl, ConsentLocation_tbl, FarmerIdentificationtbl, OwnerIdentificationTbl,
-    WorkerInTheFarmTbl, AdultInHouseholdTbl, ChildInHouseholdTbl, ChildRemediationTbl,
+    Cover_tbl, ConsentLocation_tbl, FarmerIdentificationtbl, AdultInHouseholdTbl, ChildInHouseholdTbl, ChildRemediationTbl,
     HouseholdSensitizationTbl, EndOfCollection
 )
 
@@ -20,15 +19,15 @@ class FarmerIdentificationSerializer(serializers.ModelSerializer):
         model = FarmerIdentificationtbl
         fields = '__all__'
 
-class OwnerIdentificationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = OwnerIdentificationTbl
-        fields = '__all__'
+# class OwnerIdentificationSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = OwnerIdentificationTbl
+#         fields = '__all__'
 
-class WorkerInTheFarmSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WorkerInTheFarmTbl
-        fields = '__all__'
+# class WorkerInTheFarmSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = WorkerInTheFarmTbl
+#         fields = '__all__'
 
 class AdultInHouseholdSerializer(serializers.ModelSerializer):
     class Meta:
@@ -60,8 +59,8 @@ class EndOfCollectionSerializer(serializers.ModelSerializer):
 class CoverSyncSerializer(serializers.ModelSerializer):
     consent_location = ConsentLocationSerializer(required=False)
     farmer_identification = FarmerIdentificationSerializer(required=False)
-    owner_identification = OwnerIdentificationSerializer(required=False)
-    worker_in_farm = WorkerInTheFarmSerializer(required=False)
+    # owner_identification = OwnerIdentificationSerializer(required=False)
+    # worker_in_farm = WorkerInTheFarmSerializer(required=False)
     adult_in_household = AdultInHouseholdSerializer(required=False)
     child_in_household = ChildInHouseholdSerializer(required=False)
     child_remediation = ChildRemediationSerializer(required=False)
@@ -90,8 +89,8 @@ class CoverSyncSerializer(serializers.ModelSerializer):
             
             'consent_location',
             'farmer_identification',
-            'owner_identification',
-            'worker_in_farm',
+            # 'owner_identification',
+            # 'worker_in_farm',
             'adult_in_household',
             'child_in_household',
             'child_remediation',
@@ -103,8 +102,8 @@ class CoverSyncSerializer(serializers.ModelSerializer):
         # Extract nested data
         consent_data = validated_data.pop('consent_location', None)
         farmer_data = validated_data.pop('farmer_identification', None)
-        owner_data = validated_data.pop('owner_identification', None)
-        worker_data = validated_data.pop('worker_in_farm', None)
+        # owner_data = validated_data.pop('owner_identification', None)
+        # worker_data = validated_data.pop('worker_in_farm', None)
         adult_data = validated_data.pop('adult_in_household', None)
         child_data = validated_data.pop('child_in_household', None)
         remediation_data = validated_data.pop('child_remediation', None)
@@ -117,10 +116,10 @@ class CoverSyncSerializer(serializers.ModelSerializer):
             ConsentLocation_tbl.objects.create(cover=cover, **consent_data)
         if farmer_data:
             FarmerIdentificationtbl.objects.create(cover=cover, **farmer_data)
-        if owner_data:
-            OwnerIdentificationTbl.objects.create(cover=cover, **owner_data)
-        if worker_data:
-            WorkerInTheFarmTbl.objects.create(cover=cover, **worker_data)
+        # if owner_data:
+        #     OwnerIdentificationTbl.objects.create(cover=cover, **owner_data)
+        # if worker_data:
+        #     WorkerInTheFarmTbl.objects.create(cover=cover, **worker_data)
         if adult_data:
             AdultInHouseholdTbl.objects.create(cover=cover, **adult_data)
         if child_data:
@@ -152,8 +151,8 @@ class CoverSyncSerializer(serializers.ModelSerializer):
         
         update_or_create_related('consent_location', ConsentLocationSerializer, validated_data.pop('consent_location', None))
         update_or_create_related('farmer_identification', FarmerIdentificationSerializer, validated_data.pop('farmer_identification', None))
-        update_or_create_related('owner_identification', OwnerIdentificationSerializer, validated_data.pop('owner_identification', None))
-        update_or_create_related('worker_in_farm', WorkerInTheFarmSerializer, validated_data.pop('worker_in_farm', None))
+        # update_or_create_related('owner_identification', OwnerIdentificationSerializer, validated_data.pop('owner_identification', None))
+        # update_or_create_related('worker_in_farm', WorkerInTheFarmSerializer, validated_data.pop('worker_in_farm', None))
         update_or_create_related('adult_in_household', AdultInHouseholdSerializer, validated_data.pop('adult_in_household', None))
         update_or_create_related('child_in_household', ChildInHouseholdSerializer, validated_data.pop('child_in_household', None))
         update_or_create_related('child_remediation', ChildRemediationSerializer, validated_data.pop('child_remediation', None))

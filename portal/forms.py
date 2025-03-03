@@ -19,7 +19,7 @@ class CoverForm(forms.ModelForm):
                     "Please provide the community name if the farmer does not reside in the cover community."
                 )
             if not farmer_community:
-                self.add_error(
+                self.add_error( 
                     "farmer_community",
                     "Please provide the community name if the farmer does not reside in the cover community."
                 )
