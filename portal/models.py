@@ -270,9 +270,9 @@ class WorkersInTheFarmTbl(models.Model):
     refusal_action = models.CharField(max_length=20,choices=REFUSAL_ACTION_CHOICES,verbose_name="What do you do when a worker refuses to perform a task?")
     refusal_action_other = models.CharField(max_length=100,blank=True,verbose_name="Specify refusal action",help_text="Fill this if 'Other' is selected.")
     salary_status = models.CharField(max_length=10,choices=SALARY_STATUS_CHOICES,verbose_name="Do your workers receive their full salaries?")
-    recruit_1 = models.CharField(max_length=2,choices=YES_NO_CHOICES,verbose_name="It is acceptable for a person who cannot pay their debts to work for the creditor to reimburse the debt.")
-    recruit_2 = models.CharField(max_length=2,choices=YES_NO_CHOICES,verbose_name="It is acceptable for an employer not to reveal the true nature of the work during recruitment.")
-    recruit_3 = models.CharField(max_length=2,choices=YES_NO_CHOICES,verbose_name="A worker is obliged to work whenever he is called upon by his employer.")
+    recruit_1 = models.CharField(max_length=2,choices=YES_OR_NO,verbose_name="It is acceptable for a person who cannot pay their debts to work for the creditor to reimburse the debt.")
+    recruit_2 = models.CharField(max_length=2,choices=YES_OR_NO,verbose_name="It is acceptable for an employer not to reveal the true nature of the work during recruitment.")
+    recruit_3 = models.CharField(max_length=2,choices=YES_OR_NO,verbose_name="A worker is obliged to work whenever he is called upon by his employer.")
     conditions_1 = models.CharField(max_length=2,choices=AGREE_OR_DISAGREE,verbose_name="A worker is not entitled to move freely.")
     conditions_2 = models.CharField(max_length=2,choices=AGREE_OR_DISAGREE,verbose_name="A worker must be free to communicate with his or her family and friends.")
     conditions_3 = models.CharField(max_length=2,choices=AGREE_OR_DISAGREE,verbose_name="A worker is obliged to adapt to any living conditions imposed by the employer.")
@@ -370,14 +370,19 @@ class ChildrenInHouseholdTbl(models.Model):
 
     words_validator = RegexValidator(regex=r'^[A-Za-z\s]+$',message='This field must contain only letters and spaces.')
     capital_letters_numbers_validator = RegexValidator(regex=r'^[A-Z0-9\s]+$',message="Only capital letters, numbers, and spaces are allowed.")
-  # Choices for who is answering when the child is not available.
-    WHO_ANSWERS_CHOICES = [
-        ('parents', 'The parents or legal guardians'),
-        ('family_member', 'Another family member'),
-        ('sibling', "One of the child's siblings"),
-        ('other', 'Other'),
+
+    YES_NO_CHOICES = [
+        ('yes', 'Yes'),
+        ('no', 'No'),
     ]
-     # Gender choices
+
+    consent = models.ForeignKey(ConsentLocation_tbl,on_delete=models.CASCADE,related_name='child_in_household',null=True)
+    children_present = models.CharField( choices=YES_NO_CHOICES, verbose_name="Are there children living in the respondent's household?", help_text="Answer Yes if there are children, No otherwise.")
+    num_children_5_to_17 = models.PositiveSmallIntegerField(verbose_name="Number of children between ages 5 and 17",validators=[MinValueValidator(1), MaxValueValidator(19)],help_text="Count the producer's children as well as other children living in the household (cannot be negative or exceed 19).")
+
+
+class ChildInHouseholdTbl(models.Model):
+       # Gender choices
     GENDER_CHOICES = [
         ('Boy', 'Boy'),
         ('Girl', 'Girl'),
@@ -387,12 +392,17 @@ class ChildrenInHouseholdTbl(models.Model):
         ('Yes', 'Yes'),
         ('No', 'No'),
     ]
-     # Choices for Yes/No questions (you can adjust the codes if needed)
+      # Choices for Yes/No questions (you can adjust the codes if needed)
     YES_NO_CHOICES = [
-        ('01', 'Yes'),
-        ('02', 'No'),
+        ('yes', 'Yes'),
+        ('no', 'No'),
     ]
-      # Choices for the unavailability reasons when a child cannot be surveyed.
+    WHO_ANSWERS_CHOICES = [
+        ('parents', 'The parents or legal guardians'),
+        ('family_member', 'Another family member'),
+        ('sibling', "One of the child's siblings"),
+        ('other', 'Other'),
+    ]
     CHILD_UNAVAILABILITY_REASON_CHOICES = [
         ('school', 'The child is at school'),
         ('work_cocoa', 'The child has gone to work on the cocoa farm'),
@@ -405,20 +415,12 @@ class ChildrenInHouseholdTbl(models.Model):
         ('sleeping', 'The child is sleeping'),
         ('other', 'Other reasons'),
     ]
-
-    consent = models.ForeignKey(ConsentLocation_tbl,on_delete=models.CASCADE,related_name='child_in_household',null=True)
-    children_present = models.CharField( choices=YES_NO_CHOICES, verbose_name="Are there children living in the respondent's household?", help_text="Answer Yes if there are children, No otherwise.")
-    num_children_5_to_17 = models.PositiveSmallIntegerField(verbose_name="Number of children between ages 5 and 17",validators=[MinValueValidator(1), MaxValueValidator(19)],help_text="Count the producer's children as well as other children living in the household (cannot be negative or exceed 19).")
-
-
-class ChildInHouseholdTbl(models.Model):
-
     household = models.ForeignKey(ChildrenInHouseholdTbl, on_delete=models.CASCADE, related_name='children')
     child_declared_in_cover = models.CharField(choices=YES_NO_CHOICES,verbose_name="Is the child among those declared in the cover as the farmer's child?",help_text="Yes if the child is already listed in the cover; No otherwise.")
     child_identifier = models.PositiveSmallIntegerField(verbose_name="Child identifier",validators=[MinValueValidator(1), MaxValueValidator(19)],help_text="Enter the number attached to the child's name in the cover (must be less than 20).")
     child_can_be_surveyed = models.CharField(choices=YES_NO_CHOICES,verbose_name="Can the child be surveyed now?",help_text="Answer Yes if the child is available for survey; No otherwise.")
     child_unavailability_reason = models.CharField(max_length=20,choices=CHILD_UNAVAILABILITY_REASON_CHOICES,blank=True,verbose_name="Reason for child not being surveyed",help_text="Select the reason if the child cannot be surveyed.")
-    child_not_avail = models.CharField(max_length=200,blank=True, validators=[capital_letters_numbers_validator], verbose_name="Other reasons (in capital letters) for child not being available", help_text="Provide reasons in capital letters. (Minimum length can be validated separately.)")
+    child_not_avail = models.CharField(max_length=200,blank=True,  verbose_name="Other reasons (in capital letters) for child not being available", help_text="Provide reasons in capital letters. (Minimum length can be validated separately.)")
     who_answers_child_unavailable = models.CharField(max_length=20,choices=WHO_ANSWERS_CHOICES,blank=True,verbose_name="Who is answering for the child (if not available)")
     who_answers_child_unavailable_other = models.CharField(max_length=100,blank=True,verbose_name="Specify who is answering (if Other is selected)")
     child_first_name = models.CharField(max_length=100,validators=[words_validator],verbose_name="Child's First Name")
