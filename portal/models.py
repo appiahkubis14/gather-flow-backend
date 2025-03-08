@@ -34,12 +34,21 @@ name_validator = RegexValidator(
 ###########################################################################################
 # COVER QUESTIONNAIRE MODEL
 ###########################################################################################
-EXTERNAL_API_URL = "https://example.com/api/farmer_details/"  # Replace with actual API URL
+
+# Function to fetch farmer codes from an API
+def get_farmer_codes():
+    try:
+        response = requests.get("https://your-api-endpoint.com/farmers")  # Replace with actual API URL
+        response.raise_for_status()
+        farmers = response.json()  # Assuming the API returns a JSON response
+        return [(farmer['farmer_code'], f"{farmer['farmer_code']} - {farmer['name']}") for farmer in farmers]
+    except requests.RequestException:
+        return []  # Return an empty list if API request fails
 
 class Cover_tbl(models.Model):
     enumerator_name = models.CharField(max_length=100, help_text="Enumerator name (letters only, no spaces).")
     enumerator_code = models.CharField(max_length=50, blank=True, unique=True)
-    farmer_code = models.CharField(max_length=50, unique=True, help_text="Select farmer to auto-fill details.")
+    farmer_code = models.CharField(max_length=50, choices=get_farmer_codes(),)
     society_code = models.CharField(max_length=50, blank=True, help_text="Auto-fetched from API based on farmer_code.")
     farmer_surname = models.CharField(max_length=100, blank=True)
     farmer_first_name = models.CharField(max_length=100, blank=True)
@@ -50,32 +59,31 @@ class Cover_tbl(models.Model):
     client = models.CharField(max_length=50, blank=True)
     num_farmer_children = models.IntegerField(default=0, verbose_name="Number of children (5-17 years)")
 
-    def fetch_farmer_details(self):
-        """Fetches farmer details from external API and populates fields."""
-        if self.farmer_code:
-            response = requests.get(f"{EXTERNAL_API_URL}{self.farmer_code}")
-            if response.status_code == 200:
-                data = response.json()
-                self.farmer_first_name = data.get("first_name", "")
-                self.farmer_surname = data.get("surname", "")
-                self.country = data.get("country", "")
-                self.region = data.get("region", "")
-                self.district = data.get("district", "")
-                self.society_code = data.get("society_code", "")
-                self.risk_classification = data.get("risk_classification", "")
-                self.client = data.get("client", "")
-            else:
-                raise ValidationError(f"Farmer Code {self.farmer_code} not found in external database.")
-
     def save(self, *args, **kwargs):
-        """Auto-fetch farmer details before saving."""
-        self.fetch_farmer_details()
-        if not self.enumerator_code and self.enumerator_name:
-            self.enumerator_code = generate_code(self.enumerator_name, prefix="ENUM")
+        """Fetch additional farmer details from API when saving."""
+        try:
+            api_url = f"https://your-api-endpoint.com/farmers/{self.farmer_code}"
+            response = requests.get(api_url)
+            response.raise_for_status()
+            farmer_data = response.json()
+            
+            # Auto-fill fields based on API response
+            self.farmer_surname = farmer_data.get("surname", "")
+            self.farmer_first_name = farmer_data.get("first_name", "")
+            self.society_code = farmer_data.get("society_code", "")
+            self.country = farmer_data.get("country", "")
+            self.region = farmer_data.get("region", "")
+            self.district = farmer_data.get("district", "")
+            self.risk_classification = farmer_data.get("risk_classification", "")
+            self.client = farmer_data.get("client", "")
+        except requests.RequestException:
+            pass  # If API call fails, keep fields as they are
+        
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.farmer_code} - {self.farmer_first_name} {self.farmer_surname}"
+
 
 
 class FarmerChild(models.Model):
@@ -284,9 +292,9 @@ class WorkersInTheFarmTbl(models.Model):
     
 
 
-    #################################################################################
+    #########################################################################################
     # ADULT OF THE RESPONDENTS HOUSEHOLD - INFORMATION ON THE ADULTS LIVING IN THE HOUSEHOLD
-    #################################################################################
+    #########################################################################################
     
 class AdultInHouseholdTbl(models.Model):
     consent = models.ForeignKey(ConsentLocation_tbl, on_delete=models.CASCADE, related_name='adult_in_household', null=True)
@@ -362,9 +370,9 @@ class AdultHouseholdMember(models.Model):
     def __str__(self):
         return f"{self.full_name} (Household {self.household.id})"
 
-    #################################################################################
-    # CHILDREN IN THE RESPONDENT'S HOUSEHOLD MODEL
-    #################################################################################
+#################################################################################
+# CHILDREN IN THE RESPONDENT'S HOUSEHOLD MODEL
+#################################################################################
 
 class ChildrenInHouseholdTbl(models.Model):
 
@@ -954,11 +962,11 @@ class ChildEducationDetailsTbl(models.Model):
     salary_received_12 = models.CharField(max_length=3,choices=SALARY_CHOICES,help_text="Has the child received a salary for this task?")
     task_location_12 = models.CharField(max_length=20,choices=TASK_LOCATION_CHOICES,help_text="Where was this task done?")
     task_location_other_12 = models.CharField(max_length=200,blank=True,null=True,help_text="If 'Other' is selected, please specify.")
-    longest_time_school_day = models.CharField(max_length=10,choices=LONGEST_TIME_SCHOOL_DAY_CHOICES,help_text="Longest time spent on the task during a SCHOOL DAY in the last 7 days.")
-    longest_time_non_school_day = models.CharField(max_length=10,choices=LONGEST_TIME_NON_SCHOOL_DAY_CHOICES,help_text="Longest time spent on the task during a NON-SCHOOL DAY in the last 7 days.")
-    total_hours_school_days = models.IntegerField(help_text="How many hours has the child worked on during SCHOOL DAYS in the last 7 days? (0-1015)")
-    total_hours_non_school_days = models.IntegerField(help_text="How many hours has the child been working on during NON-SCHOOL DAYS in the last 7 days? (0-1015)")
-    under_supervision = models.CharField( max_length=3, choices=YES_NO_CHOICES, help_text="Was the child under supervision of an adult when performing this task?")
+    # longest_time_school_day = models.CharField(max_length=10,choices=LONGEST_TIME_SCHOOL_DAY_CHOICES,help_text="Longest time spent on the task during a SCHOOL DAY in the last 7 days.")
+    # longest_time_non_school_day = models.CharField(max_length=10,choices=LONGEST_TIME_NON_SCHOOL_DAY_CHOICES,help_text="Longest time spent on the task during a NON-SCHOOL DAY in the last 7 days.")
+    # total_hours_school_days = models.IntegerField(help_text="How many hours has the child worked on during SCHOOL DAYS in the last 7 days? (0-1015)")
+    # total_hours_non_school_days = models.IntegerField(help_text="How many hours has the child been working on during NON-SCHOOL DAYS in the last 7 days? (0-1015)")
+    # under_supervision = models.CharField( max_length=3, choices=YES_NO_CHOICES, help_text="Was the child under supervision of an adult when performing this task?")
     child_work_who = models.CharField(max_length=20,choices=WORK_FOR_WHOM_CHOICES,help_text="For whom does the child work?")
     child_work_who_other = models.CharField(max_length=200,blank=True,null=True,help_text="If 'Other' is selected, please specify.")
     child_work_why = models.CharField(max_length=20,choices=WORK_REASON_CHOICES,help_text="Why does the child work?")
