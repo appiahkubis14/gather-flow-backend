@@ -1,61 +1,78 @@
 from django.urls import path
 from .views import (
-    CoverViewSet, ConsentLocationViewSet, FarmerIdentificationViewSet, 
-    AdultInHouseholdViewSet, ChildInHouseholdViewSet, ChildRemediationViewSet,
-    HouseholdSensitizationViewSet, EndOfCollectionViewSet, CoverSyncView
+    adult_household_member_view,
+    adult_in_household_view,
+    ChildEducationDetailsView,
+    ChildRemediationView,
+    child_in_household_view,
+    children_in_household_view,
+    ConsentLocationView,
+    cover_view,
+    EndOfCollectionView,
+    farmer_child_view,
+    farmer_identification_view,
+    HouseholdSensitizationView,
+    owner_identification_view,
+    workers_in_farm_view,
 )
 
-# Standard endpoints using viewset.as_view() for individual CRUD actions
-cover_list = CoverViewSet.as_view({'get': 'list', 'post': 'create'})
-cover_detail = CoverViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
-
-consent_list = ConsentLocationViewSet.as_view({'get': 'list', 'post': 'create'})
-consent_detail = ConsentLocationViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
-
-farmer_list = FarmerIdentificationViewSet.as_view({'get': 'list', 'post': 'create'})
-farmer_detail = FarmerIdentificationViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
-
-adult_list = AdultInHouseholdViewSet.as_view({'get': 'list', 'post': 'create'})
-adult_detail = AdultInHouseholdViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
-
-child_list = ChildInHouseholdViewSet.as_view({'get': 'list', 'post': 'create'})
-child_detail = ChildInHouseholdViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
-
-child_remediation_list = ChildRemediationViewSet.as_view({'get': 'list', 'post': 'create'})
-child_remediation_detail = ChildRemediationViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
-
-sensitization_list = HouseholdSensitizationViewSet.as_view({'get': 'list', 'post': 'create'})
-sensitization_detail = HouseholdSensitizationViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
-
-end_of_collection_list = EndOfCollectionViewSet.as_view({'get': 'list', 'post': 'create'})
-end_of_collection_detail = EndOfCollectionViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
-
 urlpatterns = [
-    path('cover/', cover_list, name='cover-list'),
-    path('cover/<int:pk>/', cover_detail, name='cover-detail'),
+    # Cover endpoints:
+    path('cover/', cover_view, name='cover-list'),  # GET: List all covers; POST: Create a new cover.
+    path('cover/<int:cover_id>/', cover_view, name='cover-detail'),  # GET: Retrieve, PUT: Update, DELETE: Delete a specific cover.
 
-    path('consent-location/', consent_list, name='consent-location-list'),
-    path('consent-location/<int:pk>/', consent_detail, name='consent-location-detail'),
+    # Farmer Child endpoints:
+    path('child/', farmer_child_view, name='child-list'),  # GET: List all children; POST: Create a new child.
+    path('child/<int:child_id>/', farmer_child_view, name='child-detail'),  # GET: Retrieve, PUT: Update, DELETE: Delete a specific child.
+    
+    path('consent-location/', ConsentLocationView.as_view(), name='consent-location-list'),
+    path('consent-location/<int:consent_id>/', ConsentLocationView.as_view(), name='consent-location-detail'),
+    
+     # List all farmer identification records or create a new one
+    path('farmer-identification/', farmer_identification_view, name='farmer-identification-list'),
+    # Retrieve, update, or delete a specific farmer identification record
+    path('farmer-identification/<int:pk>/', farmer_identification_view, name='farmer-identification-detail'),
+    
+     # List all owner identification records or create a new one
+    path('owner-identification/', owner_identification_view, name='owner-identification-list'),
+    # Retrieve, update, or delete a specific owner identification record by its pk
+    path('owner-identification/<int:pk>/', owner_identification_view, name='owner-identification-detail'),
+    
+    # List all worker records or create a new one
+    path('workers-in-farm/', workers_in_farm_view, name='workers-in-farm-list'),
+    # Retrieve, update, or delete a specific worker record by its pk
+    path('workers-in-farm/<int:pk>/', workers_in_farm_view, name='workers-in-farm-detail'),
+    
+     # Endpoints for AdultInHouseholdTbl
+    path('adult-in-household/', adult_in_household_view, name='adult-in-household-list'),
+    path('adult-in-household/<int:id>/', adult_in_household_view, name='adult-in-household-detail'),
 
-    path('farmer-identification/', farmer_list, name='farmer-identification-list'),
-    path('farmer-identification/<int:pk>/', farmer_detail, name='farmer-identification-detail'),
+    # Endpoints for AdultHouseholdMember
+    path('adult-household-member/', adult_household_member_view, name='adult-household-member-list'),
+    path('adult-household-member/<int:id>/', adult_household_member_view, name='adult-household-member-detail'),
+    
+     # Endpoints for ChildrenInHouseholdTbl (overall children record)
+    path('children-in-household/', children_in_household_view, name='children-in-household-list'),
+    path('children-in-household/<int:id>/', children_in_household_view, name='children-in-household-detail'),
+    
+    # Endpoints for ChildInHouseholdTbl (individual child record)
+    path('child-in-household/', child_in_household_view, name='child-in-household-list'),
+    path('child-in-household/<int:id>/', child_in_household_view, name='child-in-household-detail'),
+    
+    # URL for listing all records or creating a new record
+    path('child-education-details/', ChildEducationDetailsView.as_view(), name='child_education_details_list'),
+    # URL for retrieving, updating, or deleting a specific record
+    path('child-education-details/<int:id>/', ChildEducationDetailsView.as_view(), name='child_education_details_detail'),
+    
+     # Child Remediation endpoints
+    path('child-remediation/', ChildRemediationView.as_view(), name='child_remediation_list'),
+    path('child-remediation/<int:remediation_id>/', ChildRemediationView.as_view(), name='child_remediation_detail'),
 
-    path('adult-in-household/', adult_list, name='adult-in-household-list'),
-    path('adult-in-household/<int:pk>/', adult_detail, name='adult-in-household-detail'),
+    # Household Sensitization endpoints
+    path('household-sensitization/', HouseholdSensitizationView.as_view(), name='household_sensitization_list'),
+    path('household-sensitization/<int:sensitization_id>/', HouseholdSensitizationView.as_view(), name='household_sensitization_detail'),
 
-    path('child-in-household/', child_list, name='child-in-household-list'),
-    path('child-in-household/<int:pk>/', child_detail, name='child-in-household-detail'),
-
-    path('child-remediation/', child_remediation_list, name='child-remediation-list'),
-    path('child-remediation/<int:pk>/', child_remediation_detail, name='child-remediation-detail'),
-
-    path('household-sensitization/', sensitization_list, name='household-sensitization-list'),
-    path('household-sensitization/<int:pk>/', sensitization_detail, name='household-sensitization-detail'),
-
-    path('end-of-collection/', end_of_collection_list, name='end-of-collection-list'),
-    path('end-of-collection/<int:pk>/', end_of_collection_detail, name='end-of-collection-detail'),
-
-    # Nested sync endpoint for Cover_tbl and related objects:
-    path('cover-sync/', CoverSyncView.as_view(), name='cover-sync'),
-    path('cover-sync/<int:pk>/', CoverSyncView.as_view(), name='cover-sync-detail'),
+    # End of Collection endpoints
+    path('end-of-collection/', EndOfCollectionView.as_view(), name='end_of_collection_list'),
+    path('end-of-collection/<int:id>/', EndOfCollectionView.as_view(), name='end_of_collection_detail'),
 ]

@@ -22,10 +22,10 @@ env = environ.Env(
 )
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
+# # SECURITY WARNING: keep the secret key used in production secret!
+# SECRET_KEY = env('SECRET_KEY')
 
-DEBUG = env('DEBUG')
+# DEBUG = env('DEBUG')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # BASE_DIR = Path(__file__).resolve().parent.parent
@@ -35,7 +35,7 @@ DEBUG = env('DEBUG')
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = "django-insecure-&v5!flu!72xmgrjp^r@zi+yg6g180#z_yy@3kcp%w3vr=tb@!!"
+SECRET_KEY = "django-insecure-&v5!flu!72xmgrjp^r@zi+yg6g180#z_yy@3kcp%w3vr=tb@!!"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -46,8 +46,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    # "admin_interface",
-    # "colorfield",
+    "admin_interface",
+    "colorfield",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

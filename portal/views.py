@@ -20,10 +20,11 @@ from .models import (
     FarmerIdentification_Info_OnVisit_tbl,
     WorkersInTheFarmTbl,
     AdultInHouseholdTbl,
+    ChildHouseholdDetailsTbl,
     AdultHouseholdMember,
     ChildrenInHouseholdTbl,
     ChildInHouseholdTbl,
-    ChildEducationalAssessment,
+    ChildEducationDetailsTbl,
     ChildRemediationTbl,
     HouseholdSensitizationTbl,
     EndOfCollection,
@@ -387,10 +388,9 @@ def owner_identification_view(request, pk=None):
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
 
-
-#################################################################################
+ ##################################################################################
     # WORKERS IN THE FARM
-#################################################################################
+##################################################################################
 
 @csrf_exempt
 def workers_in_farm_view(request, pk=None):
@@ -941,11 +941,6 @@ def child_in_household_view(request, id=None):
 ############################################
 # ChildHouseholdDetails Model
 ############################################
-from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
-from .models import ChildHouseholdDetailsTbl
 
 @csrf_exempt
 def child_household_details(request, id=None):
@@ -1072,7 +1067,7 @@ class ChildEducationDetailsView(View):
         if not child_id:
             return JsonResponse({'error': 'ID is required for deletion'}, status=400)
         
-        child = get_object_or_404(ChildEducationalAssessment, id=child_id)
+        child = get_object_or_404(ChildEducationDetailsTbl, id=child_id)
         child.delete()
         return JsonResponse({'message': 'Child record deleted'}, status=204)
 

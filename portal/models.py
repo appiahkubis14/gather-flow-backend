@@ -6,49 +6,31 @@ from django.core.validators import RegexValidator, MinValueValidator, MaxValueVa
 from django.forms import ValidationError
 from .helper import generate_code
 from multiselectfield import MultiSelectField
+from datetime import datetime
+import requests
 
 # Validators
-letters_only_validator = RegexValidator(
-    regex=r'^[A-Za-z]+$',
-    message='This field must contain only letters (no spaces).'
-)
-
-words_validator = RegexValidator(
-    regex=r'^[A-Za-z\s]+$',
-    message='This field must contain only letters and spaces.'
-)
-
-# Validator for fields that allow numbers, letters, spaces, and apostrophes (no accents)
-allowed_chars_validator = RegexValidator(
-    regex=r'^[0-9A-Za-z\'\s]+$',
-    message="Only numbers, letters, spaces and apostrophes are allowed. Accents are not allowed."
-)
-
-# Validator for names: letters, numbers, apostrophes, and spaces allowed (no accents)
-name_validator = RegexValidator(
-    regex=r'^[0-9A-Za-z\s\']+$',
-    message="Only letters, numbers, spaces, and apostrophes are allowed. Accents are not allowed."
-)
+letters_only_validator = RegexValidator(regex=r'^[A-Za-z]+$',message='This field must contain only letters (no spaces).')
+words_validator = RegexValidator(regex=r'^[A-Za-z\s]+$',message='This field must contain only letters and spaces.')
+allowed_chars_validator = RegexValidator(regex=r'^[0-9A-Za-z\'\s]+$',message="Only numbers, letters, spaces and apostrophes are allowed. Accents are not allowed.")
+name_validator = RegexValidator( regex=r'^[0-9A-Za-z\s\']+$',message="Only letters, numbers, spaces, and apostrophes are allowed. Accents are not allowed.")
 
 
 ###########################################################################################
 # COVER QUESTIONNAIRE MODEL
 ###########################################################################################
+EXTERNAL_API_URL = "https://example.com/api/farmer_details/"  # Replace with actual API URL
 
-# Function to fetch farmer codes from an API
-def get_farmer_codes():
-    try:
-        response = requests.get("https://your-api-endpoint.com/farmers")  # Replace with actual API URL
-        response.raise_for_status()
-        farmers = response.json()  # Assuming the API returns a JSON response
-        return [(farmer['farmer_code'], f"{farmer['farmer_code']} - {farmer['name']}") for farmer in farmers]
-    except requests.RequestException:
-        return []  # Return an empty list if API request fails
-
+class FarmerChild(models.Model):
+    name = models.CharField(max_length=100, help_text="Child's full name")
+    def __str__(self):
+        return f"{self.name}"
+    
 class Cover_tbl(models.Model):
+    
     enumerator_name = models.CharField(max_length=100, help_text="Enumerator name (letters only, no spaces).")
     enumerator_code = models.CharField(max_length=50, blank=True, unique=True)
-    farmer_code = models.CharField(max_length=50, choices=get_farmer_codes(),)
+    farmer_code = models.CharField(max_length=50, unique=True, help_text="Select farmer to auto-fill details.")
     society_code = models.CharField(max_length=50, blank=True, help_text="Auto-fetched from API based on farmer_code.")
     farmer_surname = models.CharField(max_length=100, blank=True)
     farmer_first_name = models.CharField(max_length=100, blank=True)
@@ -58,43 +40,33 @@ class Cover_tbl(models.Model):
     risk_classification = models.CharField(max_length=50, blank=True)
     client = models.CharField(max_length=50, blank=True)
     num_farmer_children = models.IntegerField(default=0, verbose_name="Number of children (5-17 years)")
+    FarmerChild = models.ForeignKey(FarmerChild, on_delete=models.CASCADE, related_name="children")
+    def fetch_farmer_details(self):
+        """Fetches farmer details from external API and populates fields."""
+        if self.farmer_code:
+            response = requests.get(f"{EXTERNAL_API_URL}{self.farmer_code}")
+            if response.status_code == 200:
+                data = response.json()
+                self.farmer_first_name = data.get("first_name", "")
+                self.farmer_surname = data.get("surname", "")
+                self.country = data.get("country", "")
+                self.region = data.get("region", "")
+                self.district = data.get("district", "")
+                self.society_code = data.get("society_code", "")
+                self.risk_classification = data.get("risk_classification", "")
+                self.client = data.get("client", "")
+            else:
+                raise ValidationError(f"Farmer Code {self.farmer_code} not found in external database.")
 
     def save(self, *args, **kwargs):
-        """Fetch additional farmer details from API when saving."""
-        try:
-            api_url = f"https://your-api-endpoint.com/farmers/{self.farmer_code}"
-            response = requests.get(api_url)
-            response.raise_for_status()
-            farmer_data = response.json()
-            
-            # Auto-fill fields based on API response
-            self.farmer_surname = farmer_data.get("surname", "")
-            self.farmer_first_name = farmer_data.get("first_name", "")
-            self.society_code = farmer_data.get("society_code", "")
-            self.country = farmer_data.get("country", "")
-            self.region = farmer_data.get("region", "")
-            self.district = farmer_data.get("district", "")
-            self.risk_classification = farmer_data.get("risk_classification", "")
-            self.client = farmer_data.get("client", "")
-        except requests.RequestException:
-            pass  # If API call fails, keep fields as they are
-        
+        """Auto-fetch farmer details before saving."""
+        self.fetch_farmer_details()
+        if not self.enumerator_code and self.enumerator_name:
+            self.enumerator_code = generate_code(self.enumerator_name, prefix="ENUM")
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.farmer_code} - {self.farmer_first_name} {self.farmer_surname}"
-
-
-
-class FarmerChild(models.Model):
-    cover = models.ForeignKey(Cover_tbl, on_delete=models.CASCADE, related_name="children")
-    name = models.CharField(max_length=100, help_text="Child's full name")
-    age = models.IntegerField(help_text="Age (5-17 years)", validators=[MinValueValidator(5), MaxValueValidator(17)])
-    gender = models.CharField(max_length=10, choices=[("Male", "Male"), ("Female", "Female")])
-
-    def __str__(self):
-        return f"{self.name} ({self.age} years)"
-
 
 
     ###########################################################################################
@@ -278,23 +250,23 @@ class WorkersInTheFarmTbl(models.Model):
     refusal_action = models.CharField(max_length=20,choices=REFUSAL_ACTION_CHOICES,verbose_name="What do you do when a worker refuses to perform a task?")
     refusal_action_other = models.CharField(max_length=100,blank=True,verbose_name="Specify refusal action",help_text="Fill this if 'Other' is selected.")
     salary_status = models.CharField(max_length=10,choices=SALARY_STATUS_CHOICES,verbose_name="Do your workers receive their full salaries?")
-    recruit_1 = models.CharField(max_length=2,choices=YES_OR_NO,verbose_name="It is acceptable for a person who cannot pay their debts to work for the creditor to reimburse the debt.")
-    recruit_2 = models.CharField(max_length=2,choices=YES_OR_NO,verbose_name="It is acceptable for an employer not to reveal the true nature of the work during recruitment.")
-    recruit_3 = models.CharField(max_length=2,choices=YES_OR_NO,verbose_name="A worker is obliged to work whenever he is called upon by his employer.")
-    conditions_1 = models.CharField(max_length=2,choices=AGREE_OR_DISAGREE,verbose_name="A worker is not entitled to move freely.")
-    conditions_2 = models.CharField(max_length=2,choices=AGREE_OR_DISAGREE,verbose_name="A worker must be free to communicate with his or her family and friends.")
-    conditions_3 = models.CharField(max_length=2,choices=AGREE_OR_DISAGREE,verbose_name="A worker is obliged to adapt to any living conditions imposed by the employer.")
-    conditions_4 = models.CharField(max_length=2,choices=AGREE_OR_DISAGREE,verbose_name="It is acceptable for an employer and their family to interfere in a worker's private life.")
-    conditions_5 = models.CharField( max_length=2, choices=AGREE_OR_DISAGREE, verbose_name="A worker should not have the freedom to leave work whenever they wish.")
-    leaving_1 = models.CharField(max_length=2,choices=AGREE_OR_DISAGREE,verbose_name="A worker should be required to stay longer than expected while waiting for unpaid salary.")
-    leaving_2 = models.CharField(max_length=2,choices=AGREE_OR_DISAGREE,verbose_name="A worker should not be able to leave their employer when they owe money to their employer.")
-    consent_recruitment = models.CharField(max_length=2,choices=AGREE_OR_DISAGREE,verbose_name="It is acceptable to recruit someone for work without their consent.")
+    recruit_1 = models.CharField(max_length=100,choices=YES_OR_NO,verbose_name="It is acceptable for a person who cannot pay their debts to work for the creditor to reimburse the debt.")
+    recruit_2 = models.CharField(max_length=100,choices=YES_OR_NO,verbose_name="It is acceptable for an employer not to reveal the true nature of the work during recruitment.")
+    recruit_3 = models.CharField(max_length=100,choices=YES_OR_NO,verbose_name="A worker is obliged to work whenever he is called upon by his employer.")
+    conditions_1 = models.CharField(max_length=100,choices=AGREE_OR_DISAGREE,verbose_name="A worker is not entitled to move freely.")
+    conditions_2 = models.CharField(max_length=100,choices=AGREE_OR_DISAGREE,verbose_name="A worker must be free to communicate with his or her family and friends.")
+    conditions_3 = models.CharField(max_length=100,choices=AGREE_OR_DISAGREE,verbose_name="A worker is obliged to adapt to any living conditions imposed by the employer.")
+    conditions_4 = models.CharField(max_length=100,choices=AGREE_OR_DISAGREE,verbose_name="It is acceptable for an employer and their family to interfere in a worker's private life.")
+    conditions_5 = models.CharField( max_length=100, choices=AGREE_OR_DISAGREE, verbose_name="A worker should not have the freedom to leave work whenever they wish.")
+    leaving_1 = models.CharField(max_length=100,choices=AGREE_OR_DISAGREE,verbose_name="A worker should be required to stay longer than expected while waiting for unpaid salary.")
+    leaving_2 = models.CharField(max_length=100,choices=AGREE_OR_DISAGREE,verbose_name="A worker should not be able to leave their employer when they owe money to their employer.")
+    consent_recruitment = models.CharField(max_length=100,choices=AGREE_OR_DISAGREE,verbose_name="It is acceptable to recruit someone for work without their consent.")
     
 
 
-    #########################################################################################
+    #################################################################################
     # ADULT OF THE RESPONDENTS HOUSEHOLD - INFORMATION ON THE ADULTS LIVING IN THE HOUSEHOLD
-    #########################################################################################
+    #################################################################################
     
 class AdultInHouseholdTbl(models.Model):
     consent = models.ForeignKey(ConsentLocation_tbl, on_delete=models.CASCADE, related_name='adult_in_household', null=True)
@@ -370,9 +342,9 @@ class AdultHouseholdMember(models.Model):
     def __str__(self):
         return f"{self.full_name} (Household {self.household.id})"
 
-#################################################################################
-# CHILDREN IN THE RESPONDENT'S HOUSEHOLD MODEL
-#################################################################################
+    #################################################################################
+    # CHILDREN IN THE RESPONDENT'S HOUSEHOLD MODEL
+    #################################################################################
 
 class ChildrenInHouseholdTbl(models.Model):
 
@@ -457,7 +429,9 @@ class ChildHouseholdDetailsTbl(models.Model):
     LAST_SEEN_CHOICES = [('1week', 'Max 1 week'), ('1month', 'Max 1 month'), ('1year', 'Max 1 year'), ('MoreThan1year', 'More than 1 year'), ('Never', 'Never')]
     LIVING_DURATION_CHOICES = [('Born', 'Born in the household'), ('Less1', 'Less than 1 year'), ('1-2', '1-2 years'), ('2-4', '2-4 years'), ('4-6', '4-6 years'), ('6-8', '6-8 years'), ('More8', 'More than 8 years'), ('DontKnow', "Don't know")]
     CHILD_ACCOMPANIED_CHOICES = [('Alone', 'Came alone'), ('Parents', 'Father/Mother'), ('Grandparents', 'Grandparents'), ('OtherFamily', 'Other family member'), ('WithRecruit', 'With a recruit'), ('Other', 'Other')]
-
+    
+    
+    
     child_in_household = models.ForeignKey(ChildInHouseholdTbl, on_delete=models.CASCADE, related_name="child_household_details", null=True)
     child_born_in_community = models.CharField(max_length=20, choices=CHILD_BORN_CHOICES, verbose_name="Is the child born in this community?", help_text="Select an option.")  
     child_country_of_birth = models.CharField(max_length=20, choices=COUNTRY_OF_BIRTH_CHOICES, blank=True, verbose_name="In which country is the child born?", help_text="Provide this only if 'No, born in another country' is selected.")  
@@ -962,11 +936,11 @@ class ChildEducationDetailsTbl(models.Model):
     salary_received_12 = models.CharField(max_length=3,choices=SALARY_CHOICES,help_text="Has the child received a salary for this task?")
     task_location_12 = models.CharField(max_length=20,choices=TASK_LOCATION_CHOICES,help_text="Where was this task done?")
     task_location_other_12 = models.CharField(max_length=200,blank=True,null=True,help_text="If 'Other' is selected, please specify.")
-    # longest_time_school_day = models.CharField(max_length=10,choices=LONGEST_TIME_SCHOOL_DAY_CHOICES,help_text="Longest time spent on the task during a SCHOOL DAY in the last 7 days.")
-    # longest_time_non_school_day = models.CharField(max_length=10,choices=LONGEST_TIME_NON_SCHOOL_DAY_CHOICES,help_text="Longest time spent on the task during a NON-SCHOOL DAY in the last 7 days.")
-    # total_hours_school_days = models.IntegerField(help_text="How many hours has the child worked on during SCHOOL DAYS in the last 7 days? (0-1015)")
-    # total_hours_non_school_days = models.IntegerField(help_text="How many hours has the child been working on during NON-SCHOOL DAYS in the last 7 days? (0-1015)")
-    # under_supervision = models.CharField( max_length=3, choices=YES_NO_CHOICES, help_text="Was the child under supervision of an adult when performing this task?")
+    longest_time_school_day = models.CharField(max_length=10,choices=LONGEST_TIME_SCHOOL_DAY_CHOICES,help_text="Longest time spent on the task during a SCHOOL DAY in the last 7 days.")
+    longest_time_non_school_day = models.CharField(max_length=10,choices=LONGEST_TIME_NON_SCHOOL_DAY_CHOICES,help_text="Longest time spent on the task during a NON-SCHOOL DAY in the last 7 days.")
+    total_hours_school_days = models.IntegerField(help_text="How many hours has the child worked on during SCHOOL DAYS in the last 7 days? (0-1015)")
+    total_hours_non_school_days = models.IntegerField(help_text="How many hours has the child been working on during NON-SCHOOL DAYS in the last 7 days? (0-1015)")
+    under_supervision = models.CharField( max_length=3, choices=YES_NO_CHOICES, help_text="Was the child under supervision of an adult when performing this task?")
     child_work_who = models.CharField(max_length=20,choices=WORK_FOR_WHOM_CHOICES,help_text="For whom does the child work?")
     child_work_who_other = models.CharField(max_length=200,blank=True,null=True,help_text="If 'Other' is selected, please specify.")
     child_work_why = models.CharField(max_length=20,choices=WORK_REASON_CHOICES,help_text="Why does the child work?")
